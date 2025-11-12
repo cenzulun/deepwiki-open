@@ -1860,7 +1860,57 @@ IMPORTANT:
           // Proceed to fetch structure if cache loading fails
         }
 
-        // If we reached here, either there was no cache, it was invalid, or an error occurred
+        // For local repositories, try to generate wiki content first
+        if (effectiveRepoInfo.type === 'local' && effectiveRepoInfo.localPath) {
+          try {
+            setLoadingMessage(messages.loading?.generatingWiki || 'Generating wiki for local repository...');
+            console.log('Generating wiki content for local repository...');
+
+            const wikiGenRequest = {
+              local_path: effectiveRepoInfo.localPath,
+              provider: selectedProviderState || 'deepseek',
+              model: selectedModelState || 'deepseek-chat',
+              language: language
+            };
+
+            const wikiResponse = await fetch('/local_repo/generate_wiki', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(wikiGenRequest)
+            });
+
+            if (wikiResponse.ok) {
+              const wikiData = await wikiResponse.json();
+              console.log('Successfully generated wiki for local repository');
+
+              if (wikiData.wiki_structure) {
+                // Ensure the generated structure has sections and rootSections
+                const structureWithSections = {
+                  ...wikiData.wiki_structure,
+                  sections: wikiData.wiki_structure.sections || [],
+                  rootSections: wikiData.wiki_structure.rootSections || []
+                };
+
+                setWikiStructure(structureWithSections);
+                setGeneratedPages(wikiData.generated_pages || {});
+                setCurrentPageId(structureWithSections.pages.length > 0 ? structureWithSections.pages[0].id : undefined);
+                setIsLoading(false);
+                setEmbeddingError(false);
+                setLoadingMessage(undefined);
+                return; // Success, exit early
+              }
+            } else {
+              console.error('Failed to generate wiki for local repository:', wikiResponse.status, await wikiResponse.text());
+            }
+          } catch (wikiError) {
+            console.error('Error generating wiki for local repository:', wikiError);
+            // Fall back to regular structure fetching
+          }
+        }
+
+        // If we reached here, either there was no cache, it was invalid, wiki generation failed, or an error occurred
         // Proceed to fetch repository structure
         fetchRepositoryStructure();
       };

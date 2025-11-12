@@ -15,7 +15,9 @@
     "fetchingStructure": "获取仓库结构...",
     "determiningStructure": "验证Wiki结构...",
     "clearingCache": "清除服务器缓存...",
-    "preparingDownload": "请等待，我们正在准备您的下载..."
+    "preparingDownload": "请等待，我们正在准备您的下载...",
+    "generatingWiki": "正在为本地仓库生成Wiki...",
+    "fetchingCache": "检查缓存中的Wiki..."
   },
   "home": {
     "welcome": "欢迎使用DeepWiki",

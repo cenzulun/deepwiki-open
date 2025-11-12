@@ -16,6 +16,7 @@ from api.dashscope_client import DashscopeClient
 from api.zhipuai_client import ZhipuAIClient
 from api.deepseek_client import DeepSeekClient
 from api.chinese_models_client import ChineseModelsClient
+from api.mock_embedder import MockEmbedderClient
 from adalflow import GoogleGenAIClient, OllamaClient
 
 # 从环境变量获取API密钥
@@ -85,7 +86,8 @@ CLIENT_CLASSES = {
     "DashscopeClient": DashscopeClient,
     "ZhipuAIClient": ZhipuAIClient,
     "DeepSeekClient": DeepSeekClient,
-    "ChineseModelsClient": ChineseModelsClient
+    "ChineseModelsClient": ChineseModelsClient,
+    "MockEmbedderClient": MockEmbedderClient
 }
 
 def replace_env_placeholders(config: Union[Dict[str, Any], List[Any], str, Any]) -> Union[Dict[str, Any], List[Any], str, Any]:
@@ -257,16 +259,19 @@ def is_google_embedder():
 def get_embedder_type():
     """
     Get the current embedder type based on configuration.
-    
+
     Returns:
-        str: 'ollama', 'google', or 'openai' (default)
+        str: 'ollama', 'google', 'mock', or 'openai' (default)
     """
-    if is_ollama_embedder():
+    embedder_type = os.environ.get('DEEPWIKI_EMBEDDER_TYPE', 'openai').lower()
+    if embedder_type == 'mock':
+        return 'mock'
+    elif is_ollama_embedder():
         return 'ollama'
     elif is_google_embedder():
         return 'google'
     else:
-        return 'openai'
+        return embedder_type if embedder_type in ['openai', 'google', 'ollama', 'mock'] else 'openai'
 
 # Load repository and file filters configuration
 def load_repo_config():

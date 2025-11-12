@@ -44,12 +44,29 @@ if is_development:
 
 import uvicorn
 
-# Check for required environment variables
-required_env_vars = ['GOOGLE_API_KEY', 'OPENAI_API_KEY']
-missing_vars = [var for var in required_env_vars if not os.environ.get(var)]
-if missing_vars:
-    logger.warning(f"Missing environment variables: {', '.join(missing_vars)}")
-    logger.warning("Some functionality may not work correctly without these variables.")
+# Check for API keys - support mock mode when SKIP_EMBEDDING is enabled
+skip_embedding = os.environ.get('SKIP_EMBEDDING', '').lower() in ['true', '1', 't']
+embedder_type = os.environ.get('DEEPWIKI_EMBEDDER_TYPE', '').lower()
+
+if skip_embedding and embedder_type == 'mock':
+    logger.info("运行在模拟嵌入模式，跳过API密钥检查")
+else:
+    # Check for at least one working API key
+    api_keys = {
+        'GOOGLE_API_KEY': os.environ.get('GOOGLE_API_KEY'),
+        'OPENAI_API_KEY': os.environ.get('OPENAI_API_KEY'),
+        'ZHIPUAI_API_KEY': os.environ.get('ZHIPUAI_API_KEY'),
+        'DEEPSEEK_API_KEY': os.environ.get('DEEPSEEK_API_KEY')
+    }
+
+    available_keys = [key for key, value in api_keys.items() if value and value.strip() and value != 'dummy-key-for-bypass-embed-check']
+
+    if not available_keys:
+        logger.warning("未找到有效的API密钥")
+        logger.warning("请配置至少一个API密钥: GOOGLE_API_KEY, OPENAI_API_KEY, ZHIPUAI_API_KEY, DEEPSEEK_API_KEY")
+        logger.warning("或者在.env文件中设置 SKIP_EMBEDDING=true 和 DEEPWIKI_EMBEDDER_TYPE=mock")
+    else:
+        logger.info(f"找到可用的API密钥: {', '.join(available_keys)}")
 
 # Configure Google Generative AI
 import google.generativeai as genai

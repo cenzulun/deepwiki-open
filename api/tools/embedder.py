@@ -20,6 +20,8 @@ def get_embedder(is_local_ollama: bool = False, use_google_embedder: bool = Fals
             embedder_config = configs["embedder_ollama"]
         elif embedder_type == 'google':
             embedder_config = configs["embedder_google"]
+        elif embedder_type == 'mock':
+            embedder_config = configs["embedder"]
         else:  # default to openai
             embedder_config = configs["embedder"]
     elif is_local_ollama:
@@ -33,11 +35,27 @@ def get_embedder(is_local_ollama: bool = False, use_google_embedder: bool = Fals
             embedder_config = configs["embedder_ollama"]
         elif current_type == 'google':
             embedder_config = configs["embedder_google"]
+        elif current_type == 'mock':
+            embedder_config = configs["embedder"]
         else:
             embedder_config = configs["embedder"]
 
     # --- Initialize Embedder ---
-    model_client_class = embedder_config["model_client"]
+    model_client_class_name = embedder_config["model_client"]
+
+    # Convert string to actual class
+    if isinstance(model_client_class_name, str):
+        if model_client_class_name == "MockEmbedderClient":
+            from api.mock_embedder import MockEmbedderClient
+            model_client_class = MockEmbedderClient
+        else:
+            # Fallback to OpenAI client for other cases
+            model_client_class = globals().get(model_client_class_name, None)
+            if model_client_class is None:
+                raise ImportError(f"Model client class {model_client_class_name} not found")
+    else:
+        model_client_class = model_client_class_name
+
     if "initialize_kwargs" in embedder_config:
         model_client = model_client_class(**embedder_config["initialize_kwargs"])
     else:

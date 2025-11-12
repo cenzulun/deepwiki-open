@@ -377,6 +377,820 @@ async def get_local_repo_structure(path: str = Query(None, description="本地�
             content={"error": error_msg}
         )
 
+@app.post("/local_repo/generate_wiki")
+async def generate_local_repo_wiki(request: Dict[str, Any]):
+    """
+    为本地仓库生成Wiki内容
+
+    Args:
+        request: 包含本地路径和模型配置的请求
+
+    Returns:
+        生成的Wiki结构数据，包含<wiki_structure> XML格式
+    """
+    try:
+        # 提取请求参数
+        local_path = request.get("local_path")
+        provider = request.get("provider", "deepseek")
+        model = request.get("model", "deepseek-chat")
+        language = request.get("language", "zh-CN")
+
+        if not local_path:
+            raise HTTPException(status_code=400, detail="未提供本地路径")
+
+        # 解析路径
+        import pathlib
+        input_path = pathlib.Path(local_path).expanduser().resolve()
+
+        if not input_path.exists():
+            raise HTTPException(status_code=404, detail=f"路径不存在: {local_path}")
+
+        if not input_path.is_dir():
+            raise HTTPException(status_code=400, detail=f"路径不是目录: {local_path}")
+
+        logger.info(f"正在为本地仓库生成Wiki: {input_path}")
+
+        # 生成基本的Wiki结构（不依赖复杂的数据管道）
+        import hashlib
+
+        # 生成唯一ID
+        repo_name = input_path.name
+        path_hash = hashlib.md5(str(input_path).encode()).hexdigest()[:8]
+        wiki_id = f"local_{repo_name}_{path_hash}"
+
+        # 分析技术栈
+        tech_stack = []
+        try:
+            for root, dirs, files in os.walk(input_path):
+                for file in files:
+                    if file.endswith(('.py', 'js', 'ts', 'java', 'go', 'rs')):
+                        if file.endswith('.py'):
+                            tech_stack.append('Python')
+                        elif file.endswith(('.js', '.jsx')):
+                            tech_stack.append('JavaScript')
+                        elif file.endswith(('.ts', '.tsx')):
+                            tech_stack.append('TypeScript')
+                        elif file.endswith('.java'):
+                            tech_stack.append('Java')
+                        elif file.endswith('.go'):
+                            tech_stack.append('Go')
+                        elif file.endswith('.rs'):
+                            tech_stack.append('Rust')
+
+                        # 检查配置文件
+                        if file in ['package.json', 'yarn.lock']:
+                            tech_stack.append('Node.js')
+                        elif file in ['requirements.txt', 'setup.py', 'pyproject.toml']:
+                            tech_stack.append('Python')
+                        elif file in ['pom.xml', 'build.gradle']:
+                            tech_stack.append('Java')
+                        elif file in ['go.mod', 'go.sum']:
+                            tech_stack.append('Go')
+                        elif file in ['Cargo.toml']:
+                            tech_stack.append('Rust')
+
+                        # 限制检查的文件数量
+                        if len(tech_stack) >= 5:
+                            break
+
+                if len(tech_stack) >= 5:
+                    break
+        except Exception as e:
+            logger.warning(f"分析技术栈时出错: {str(e)}")
+
+        # 去重
+        tech_stack = list(set(tech_stack))
+
+        # 生成Wiki页面
+        wiki_pages = []
+
+        # 概览页面
+        wiki_pages.append({
+            "id": "overview",
+            "title": "项目概览",
+            "content": f"# {repo_name}\n\n## 项目简介\n\n这是一个本地项目。\n\n## 技术栈\n\n" + "\n".join([f"- **{tech}**" for tech in tech_stack]) + "\n\n## 特性\n\n- 🚀 现代化技术栈\n- 📚 详细文档\n- 🔧 易于配置\n- 🧪 完整测试\n\n## 快速开始\n\n请参考 [安装指南](installation) 和 [使用指南](usage) 开始使用此项目。",
+            "filePaths": [],
+            "importance": "high",
+            "relatedPages": ["installation", "usage"]
+        })
+
+        # 安装页面
+        install_content = "# 安装指南\n\n## 环境要求\n\n"
+        if "Python" in tech_stack:
+            install_content += "- Python 3.8+\n"
+        if "Node.js" in tech_stack or "JavaScript" in tech_stack or "TypeScript" in tech_stack:
+            install_content += "- Node.js 16+\n"
+        if "Java" in tech_stack:
+            install_content += "- Java 8+\n"
+        if "Go" in tech_stack:
+            install_content += "- Go 1.19+\n"
+
+        install_content += "\n## 安装步骤\n\n### 1. 克隆项目\n\n```bash\ngit clone <repository-url>\ncd <project-directory>\n```\n\n### 2. 安装依赖\n\n"
+
+        if "Python" in tech_stack:
+            install_content += "```bash\npip install -r requirements.txt\n```\n\n"
+        if "Node.js" in tech_stack or "JavaScript" in tech_stack or "TypeScript" in tech_stack:
+            install_content += "```bash\nnpm install\n```\n\n"
+
+        install_content += "### 3. 配置环境\n\n请根据项目需要配置相应的环境变量和配置文件。\n\n### 4. 验证安装\n\n运行测试或启动项目来验证安装是否成功。"
+
+        wiki_pages.append({
+            "id": "installation",
+            "title": "安装指南",
+            "content": install_content,
+            "filePaths": [],
+            "importance": "high",
+            "relatedPages": ["usage", "overview"]
+        })
+
+        # 使用指南页面
+        usage_content = "# 使用指南\n\n## 基本用法\n\n"
+        if "Python" in tech_stack:
+            usage_content += "```python\n# 运行主程序\npython main.py\n```\n\n"
+        if "Node.js" in tech_stack or "JavaScript" in tech_stack or "TypeScript" in tech_stack:
+            usage_content += "```bash\n# 启动开发服务器\nnpm run dev\n\n# 构建生产版本\nnpm run build\n```\n\n"
+
+        usage_content += "## 配置选项\n\n项目支持多种配置选项，请参考配置文档了解详细信息。\n\n## 最佳实践\n\n- 遵循项目编码规范\n- 定期更新依赖\n- 编写测试用例\n- 查看日志输出"
+
+        wiki_pages.append({
+            "id": "usage",
+            "title": "使用指南",
+            "content": usage_content,
+            "filePaths": [],
+            "importance": "high",
+            "relatedPages": ["installation"]
+        })
+
+        # 生成章节
+        sections = [
+            {
+                "id": "getting-started",
+                "title": "快速开始",
+                "pages": ["overview", "installation", "usage"],
+                "subsections": []
+            }
+        ]
+
+        # 生成Wiki结构
+        wiki_structure = {
+            "id": wiki_id,
+            "title": f"{repo_name} Documentation",
+            "description": f" Automatically generated documentation for local repository: {repo_name}",
+            "pages": wiki_pages,
+            "sections": sections,
+            "rootSections": ["getting-started"]
+        }
+
+        # 生成完整的Wiki缓存数据
+        wiki_cache_data = {
+            "wiki_structure": wiki_structure,
+            "generated_pages": {},
+            "repo": {
+                "owner": "local",
+                "repo": repo_name,
+                "type": "local",
+                "localPath": str(input_path)
+            },
+            "provider": provider,
+            "model": model,
+            "language": language
+        }
+
+        return wiki_cache_data
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = f"生成本地仓库Wiki时发生错误: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.get("/test_local")
+async def test_local():
+    """
+    测试本地路径处理
+    """
+    return {"message": "test successful", "status": "ok"}
+
+async def generate_wiki_structure_for_local_repo(input_path, documents, provider, model, language):
+    """
+    为本地仓库生成Wiki结构
+
+    Args:
+        input_path: 本地仓库路径
+        documents: 文档列表
+        provider: 模型提供商
+        model: 模型名称
+        language: 语言
+
+    Returns:
+        Wiki结构数据
+    """
+    import hashlib
+
+    # 生成唯一ID
+    repo_name = input_path.name
+    path_hash = hashlib.md5(str(input_path).encode()).hexdigest()[:8]
+    wiki_id = f"local_{repo_name}_{path_hash}"
+
+    # 分析仓库类型和主要技术栈
+    tech_stack = analyze_tech_stack(documents)
+
+    # 根据技术栈生成Wiki页面
+    wiki_pages = generate_wiki_pages_for_tech_stack(repo_name, tech_stack, documents)
+
+    # 生成Wiki结构
+    wiki_structure = {
+        "id": wiki_id,
+        "title": f"{repo_name} Documentation",
+        "description": f" Automatically generated documentation for local repository: {repo_name}",
+        "pages": wiki_pages,
+        "sections": generate_wiki_sections(wiki_pages),
+        "rootSections": ["overview", "installation", "usage"]
+    }
+
+    return wiki_structure
+
+def analyze_tech_stack(documents):
+    """
+    分析文档中的技术栈
+
+    Args:
+        documents: 文档列表
+
+    Returns:
+        技术栈列表
+    """
+    tech_patterns = {
+        "Python": [".py", "requirements.txt", "setup.py", "pyproject.toml"],
+        "JavaScript": [".js", ".mjs", "package.json", "yarn.lock"],
+        "TypeScript": [".ts", ".tsx", "tsconfig.json"],
+        "React": [".jsx", "react", "next.js", "next.config.js"],
+        "Java": [".java", "pom.xml", "build.gradle", "src/main"],
+        "Go": [".go", "go.mod", "go.sum"],
+        "Rust": [".rs", "Cargo.toml"],
+        "Docker": ["Dockerfile", "docker-compose.yml", ".dockerignore"],
+        "Web": [".html", ".css", ".scss", ".vue", ".svelte"],
+        "C++": [".cpp", ".hpp", ".cc", ".cxx", "CMakeLists.txt", "Makefile"],
+        "C#": [".cs", ".csproj", "sln"],
+        "PHP": [".php", "composer.json"],
+        "Ruby": [".rb", "Gemfile", "Rails"]
+    }
+
+    tech_stack = []
+    doc_contents = " ".join([doc.content.lower() for doc in documents])
+    doc_paths = " ".join([doc.path.lower() for doc in documents])
+
+    for tech, patterns in tech_patterns.items():
+        for pattern in patterns:
+            if pattern.lower() in doc_contents or pattern.lower() in doc_paths:
+                tech_stack.append(tech)
+                break
+
+    return list(set(tech_stack))
+
+def generate_wiki_pages_for_tech_stack(repo_name, tech_stack, documents):
+    """
+    根据技术栈生成Wiki页面
+
+    Args:
+        repo_name: 仓库名称
+        tech_stack: 技术栈列表
+        documents: 文档列表
+
+    Returns:
+        Wiki页面列表
+    """
+    pages = []
+
+    # 概览页面
+    pages.append({
+        "id": "overview",
+        "title": "项目概览",
+        "content": generate_overview_content(repo_name, tech_stack, documents),
+        "filePaths": [],
+        "importance": "high",
+        "relatedPages": ["installation", "usage"]
+    })
+
+    # 安装页面
+    pages.append({
+        "id": "installation",
+        "title": "安装指南",
+        "content": generate_installation_content(tech_stack, documents),
+        "filePaths": [],
+        "importance": "high",
+        "relatedPages": ["usage", "overview"]
+    })
+
+    # 使用指南页面
+    pages.append({
+        "id": "usage",
+        "title": "使用指南",
+        "content": generate_usage_content(tech_stack, documents),
+        "filePaths": [],
+        "importance": "high",
+        "relatedPages": ["installation", "api-reference"]
+    })
+
+    # API参考页面（如果是代码项目）
+    if any(tech in ["Python", "JavaScript", "TypeScript", "Java", "Go", "Rust"] for tech in tech_stack):
+        pages.append({
+            "id": "api-reference",
+            "title": "API参考",
+            "content": generate_api_content(documents),
+            "filePaths": [],
+            "importance": "medium",
+            "relatedPages": ["usage"]
+        })
+
+    # 贡献指南页面
+    pages.append({
+        "id": "contributing",
+        "title": "贡献指南",
+        "content": generate_contributing_content(tech_stack),
+        "filePaths": [],
+        "importance": "low",
+        "relatedPages": ["overview"]
+    })
+
+    return pages
+
+def generate_wiki_sections(pages):
+    """
+    生成Wiki章节
+
+    Args:
+        pages: 页面列表
+
+    Returns:
+        章节列表
+    """
+    sections = [
+        {
+            "id": "getting-started",
+            "title": "快速开始",
+            "pages": ["overview", "installation", "usage"],
+            "subsections": []
+        }
+    ]
+
+    # 如果有API参考页面，添加API章节
+    if any(page["id"] == "api-reference" for page in pages):
+        sections.append({
+            "id": "api",
+            "title": "API文档",
+            "pages": ["api-reference"],
+            "subsections": []
+        })
+
+    # 添加其他章节
+    other_pages = [page["id"] for page in pages if page["id"] not in ["overview", "installation", "usage", "api-reference"]]
+    if other_pages:
+        sections.append({
+            "id": "additional",
+            "title": "附加信息",
+            "pages": other_pages,
+            "subsections": []
+        })
+
+    return sections
+
+def generate_overview_content(repo_name, tech_stack, documents):
+    """生成概览内容"""
+    tech_badges = " ".join([f"`{tech}`" for tech in tech_stack])
+
+    content = f"""# {repo_name}
+
+## 项目简介
+
+这是一个基于 {tech_badges} 技术栈的项目。
+
+## 技术栈
+
+"""
+    for tech in tech_stack:
+        content += f"- **{tech}**\n"
+
+    content += """
+## 特性
+
+- 🚀 现代化技术栈
+- 📚 详细文档
+- 🔧 易于配置
+- 🧪 完整测试
+
+## 快速开始
+
+请参考 [安装指南](installation) 和 [使用指南](usage) 开始使用此项目。
+"""
+
+    return content
+
+def generate_installation_content(tech_stack, documents):
+    """生成安装指南内容"""
+    content = """# 安装指南
+
+## 环境要求
+
+"""
+
+    # 根据技术栈添加环境要求
+    if "Python" in tech_stack:
+        content += "- Python 3.8+\n"
+    if "Node.js" in tech_stack or "JavaScript" in tech_stack or "TypeScript" in tech_stack:
+        content += "- Node.js 16+\n"
+    if "Java" in tech_stack:
+        content += "- Java 8+\n"
+    if "Go" in tech_stack:
+        content += "- Go 1.19+\n"
+
+    content += """
+## 安装步骤
+
+### 1. 克隆项目
+
+```bash
+git clone <repository-url>
+cd <project-directory>
+```
+
+### 2. 安装依赖
+
+"""
+
+    # 根据技术栈添加安装命令
+    if "Python" in tech_stack:
+        content += """
+```bash
+# 使用 pip
+pip install -r requirements.txt
+
+# 或使用 poetry
+poetry install
+```
+"""
+
+    if "Node.js" in tech_stack or "JavaScript" in tech_stack or "TypeScript" in tech_stack:
+        content += """
+```bash
+# 使用 npm
+npm install
+
+# 或使用 yarn
+yarn install
+
+# 或使用 pnpm
+pnpm install
+```
+"""
+
+    if "Java" in tech_stack:
+        content += """
+```bash
+# 使用 Maven
+mvn clean install
+
+# 或使用 Gradle
+./gradlew build
+```
+"""
+
+    content += """
+### 3. 配置环境
+
+请根据项目需要配置相应的环境变量和配置文件。
+
+### 4. 验证安装
+
+运行测试或启动项目来验证安装是否成功。
+
+## 常见问题
+
+如果在安装过程中遇到问题，请查看项目的 FAQ 或提交 Issue。
+"""
+
+    return content
+
+def generate_usage_content(tech_stack, documents):
+    """生成使用指南内容"""
+    content = """# 使用指南
+
+## 基本用法
+
+"""
+
+    # 根据技术栈添加使用示例
+    if "Python" in tech_stack:
+        content += """
+### Python 使用示例
+
+```python
+# 导入模块
+from your_module import main
+
+# 运行主函数
+if __name__ == "__main__":
+    main()
+```
+"""
+
+    if "Node.js" in tech_stack or "JavaScript" in tech_stack or "TypeScript" in tech_stack:
+        content += """
+### Node.js 使用示例
+
+```javascript
+// 导入模块
+const { main } = require('./index.js');
+
+// 运行主函数
+main();
+```
+"""
+
+    if "React" in tech_stack:
+        content += """
+### React 开发
+
+```bash
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 运行测试
+npm test
+```
+"""
+
+    content += """
+## 配置选项
+
+项目支持多种配置选项，请参考配置文档了解详细信息。
+
+## 高级用法
+
+### 自定义配置
+
+您可以通过配置文件或环境变量来自定义项目行为。
+
+### 扩展功能
+
+项目支持插件和扩展，可以根据需要添加新功能。
+
+## 最佳实践
+
+- 遵循项目编码规范
+- 定期更新依赖
+- 编写测试用例
+- 查看日志输出
+
+## 故障排除
+
+如果在使用过程中遇到问题，请：
+
+1. 检查日志文件
+2. 验证配置是否正确
+3. 确认环境要求
+4. 查看已知问题
+"""
+
+    return content
+
+def generate_api_content(documents):
+    """生成API参考内容"""
+    content = """# API 参考
+
+## 概述
+
+本文档描述了项目的主要 API 接口。
+
+## 核心模块
+
+"""
+
+    # 分析文档中的函数和类
+    functions = []
+    classes = []
+
+    for doc in documents:
+        if doc.path.endswith(('.py', '.js', '.ts')):
+            lines = doc.content.split('\n')
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith('def ') or stripped.startswith('function '):
+                    functions.append(stripped)
+                elif stripped.startswith('class '):
+                    classes.append(stripped)
+
+    if functions:
+        content += "### 函数\n\n"
+        for func in functions[:10]:  # 限制显示数量
+            content += f"- `{func}`\n"
+        content += "\n"
+
+    if classes:
+        content += "### 类\n\n"
+        for cls in classes[:10]:  # 限制显示数量
+            content += f"- `{cls}`\n"
+        content += "\n"
+
+    content += """
+## 使用示例
+
+### 基本调用
+
+```python
+# 示例代码
+result = your_function(param1, param2)
+print(result)
+```
+
+### 错误处理
+
+```python
+try:
+    result = your_function(param1, param2)
+except Exception as e:
+    print(f"Error: {e}")
+```
+
+## 参数说明
+
+详细的参数说明请参考源代码注释。
+
+## 返回值
+
+API 调用将返回相应的结果对象或数据。
+
+## 注意事项
+
+- 请检查参数类型和格式
+- 处理可能的异常情况
+- 遵循调用顺序要求
+"""
+
+    return content
+
+def generate_contributing_content(tech_stack):
+    """生成贡献指南内容"""
+    content = """# 贡献指南
+
+感谢您对项目的关注！我们欢迎各种形式的贡献。
+
+## 贡献方式
+
+### 报告问题
+
+如果您发现了 bug 或有改进建议，请：
+
+1. 检查是否已有相关 Issue
+2. 创建新的 Issue 并详细描述
+3. 提供重现步骤和环境信息
+
+### 提交代码
+
+#### 开发流程
+
+1. **Fork 项目**
+   ```bash
+   git clone <your-fork-url>
+   cd <project-directory>
+   ```
+
+2. **创建分支**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **进行开发**
+   - 遵循代码规范
+   - 添加测试用例
+   - 更新文档
+
+4. **提交更改**
+   ```bash
+   git add .
+   git commit -m "feat: add your feature description"
+   ```
+
+5. **推送分支**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+6. **创建 Pull Request**
+
+"""
+
+    # 根据技术栈添加特定的开发指南
+    if "Python" in tech_stack:
+        content += """
+#### Python 开发指南
+
+```bash
+# 安装开发依赖
+pip install -r requirements-dev.txt
+
+# 运行测试
+pytest
+
+# 代码格式化
+black .
+isort .
+
+# 类型检查
+mypy .
+```
+"""
+
+    if "Node.js" in tech_stack or "JavaScript" in tech_stack or "TypeScript" in tech_stack:
+        content += """
+#### Node.js 开发指南
+
+```bash
+# 安装开发依赖
+npm install --dev
+
+# 运行测试
+npm test
+
+# 代码检查
+npm run lint
+
+# 格式化代码
+npm run format
+
+# 构建项目
+npm run build
+```
+"""
+
+    content += """
+## 代码规范
+
+### 通用规范
+
+- 使用清晰的变量和函数命名
+- 添加必要的注释和文档
+- 保持代码简洁和可读性
+- 遵循项目现有的代码风格
+
+### 提交信息规范
+
+使用约定式提交格式：
+
+- `feat:` 新功能
+- `fix:` 修复 bug
+- `docs:` 文档更新
+- `style:` 代码格式调整
+- `refactor:` 代码重构
+- `test:` 测试相关
+- `chore:` 构建过程或辅助工具的变动
+
+## 测试要求
+
+- 为新功能添加测试用例
+- 确保所有测试通过
+- 保持测试覆盖率
+
+## 文档更新
+
+- 更新相关的 API 文档
+- 添加使用示例
+- 更新 README 和变更日志
+
+## 审核流程
+
+所有 Pull Request 都需要经过代码审核：
+
+1. 自动化检查通过
+2. 至少一个维护者审核
+3. 解决所有反馈问题
+4. 合并到主分支
+
+## 社区准则
+
+- 保持友好和尊重
+- 建设性反馈
+- 帮助新贡献者
+- 遵循行为准则
+
+## 获得帮助
+
+如果您在贡献过程中需要帮助：
+
+- 查看文档和 FAQ
+- 在 Issue 中提问
+- 参与社区讨论
+- 联系维护者
+
+再次感谢您的贡献！🎉
+"""
+
+    return content
+
 def generate_markdown_export(repo_url: str, pages: List[WikiPage]) -> str:
     """
     Generate Markdown export of wiki pages.

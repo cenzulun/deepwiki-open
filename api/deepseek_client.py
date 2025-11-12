@@ -8,11 +8,12 @@ import json
 import logging
 from typing import Dict, Any, List, Optional, Union
 import httpx
-from adalflow.core.component import Component
+from adalflow.core.model_client import ModelClient
+from adalflow.core.types import ModelType, GeneratorOutput
 
 logger = logging.getLogger(__name__)
 
-class DeepSeekClient(Component):
+class DeepSeekClient(ModelClient):
     """
     DeepSeek API客户端
     支持deepseek-chat、deepseek-coder等模型
@@ -143,6 +144,83 @@ class DeepSeekClient(Component):
                     yield json.loads(data)
                 except json.JSONDecodeError:
                     continue
+
+    def call(self, api_kwargs: Dict = {}, model_type: ModelType = ModelType.UNDEFINED):
+        """
+        ModelClient标准的call方法
+
+        Args:
+            api_kwargs: API参数，包含输入和模型参数
+            model_type: 模型类型
+
+        Returns:
+            GeneratorOutput或API响应
+        """
+        logger.info(f"DeepSeek API调用: {api_kwargs}")
+
+        if model_type == ModelType.LLM:
+            # 提取LLM参数
+            messages = api_kwargs.get("messages", [])
+            model = api_kwargs.get("model", "deepseek-chat")
+            temperature = api_kwargs.get("temperature", 0.7)
+            top_p = api_kwargs.get("top_p", 0.8)
+            max_tokens = api_kwargs.get("max_tokens", None)
+            stream = api_kwargs.get("stream", False)
+
+            # 同步调用
+            import asyncio
+            try:
+                # 尝试获取现有事件循环
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # 如果已经在事件循环中，创建新的事件循环
+                    import threading
+                    result_container = {}
+                    exception_container = {}
+
+                    def run_in_thread():
+                        try:
+                            new_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(new_loop)
+                            result = new_loop.run_until_complete(
+                                self.chat_completion(
+                                    messages=messages,
+                                    model=model,
+                                    temperature=temperature,
+                                    top_p=top_p,
+                                    max_tokens=max_tokens,
+                                    stream=stream
+                                )
+                            )
+                            result_container["result"] = result
+                        except Exception as e:
+                            exception_container["exception"] = e
+                        finally:
+                            new_loop.close()
+
+                    thread = threading.Thread(target=run_in_thread)
+                    thread.start()
+                    thread.join()
+
+                    if "exception" in exception_container:
+                        raise exception_container["exception"]
+                    return result_container["result"]
+                else:
+                    return loop.run_until_complete(
+                        self.chat_completion(
+                            messages=messages,
+                            model=model,
+                            temperature=temperature,
+                            top_p=top_p,
+                            max_tokens=max_tokens,
+                            stream=stream
+                        )
+                    )
+            except Exception as e:
+                logger.error(f"DeepSeek API调用失败: {str(e)}")
+                raise
+        else:
+            raise ValueError(f"不支持的模型类型: {model_type}")
 
     def __call__(self, *args, **kwargs):
         """使对象可调用"""

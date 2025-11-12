@@ -1,5 +1,5 @@
 {
-  "default_provider": "google",
+  "default_provider": "deepseek",
   "providers": {
     "zhipuai": {
       "client_class": "ZhipuAIClient",

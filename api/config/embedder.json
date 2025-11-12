@@ -1,11 +1,10 @@
 {
   "embedder": {
-    "client_class": "OpenAIClient",
+    "client_class": "MockEmbedderClient",
+    "model_client": "MockEmbedderClient",
     "batch_size": 500,
     "model_kwargs": {
-      "model": "text-embedding-3-small",
-      "dimensions": 256,
-      "encoding_format": "float"
+      "dimensions": 256
     }
   },
   "embedder_ollama": {
