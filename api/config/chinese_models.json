@@ -1,0 +1,173 @@
+{
+  "moonshot": {
+    "client_class": "ChineseModelsClient",
+    "default_model": "moonshot-v1-32k",
+    "provider_name": "月之暗面 Kimi",
+    "supportsCustomModel": true,
+    "models": {
+      "moonshot-v1-8k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "moonshot-v1-32k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 8000
+      },
+      "moonshot-v1-128k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 16000
+      }
+    }
+  },
+  "wenxin": {
+    "client_class": "ChineseModelsClient",
+    "default_model": "ernie-bot-turbo",
+    "provider_name": "百度文心一言",
+    "supportsCustomModel": true,
+    "models": {
+      "ernie-bot": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_output_tokens": 4000
+      },
+      "ernie-bot-turbo": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_output_tokens": 4000
+      },
+      "ernie-bot-4": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_output_tokens": 4000
+      }
+    }
+  },
+  "lingyi": {
+    "client_class": "ChineseModelsClient",
+    "default_model": "yi-medium",
+    "provider_name": "零一万物 Yi",
+    "supportsCustomModel": true,
+    "models": {
+      "yi-large": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "yi-medium": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "yi-small": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      }
+    }
+  },
+  "minimax": {
+    "client_class": "ChineseModelsClient",
+    "default_model": "abab6.5-chat",
+    "provider_name": "MiniMax",
+    "supportsCustomModel": true,
+    "models": {
+      "abab6.5": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "abab6.5-chat": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "abab5.5-chat": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      }
+    }
+  },
+  "doubao": {
+    "client_class": "ChineseModelsClient",
+    "default_model": "doubao-pro-32k",
+    "provider_name": "字节跳动豆包",
+    "supportsCustomModel": true,
+    "models": {
+      "doubao-lite-4k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "doubao-lite-32k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 8000
+      },
+      "doubao-lite-128k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 16000
+      },
+      "doubao-pro-4k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "doubao-pro-32k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 8000
+      }
+    }
+  },
+  "stepfun": {
+    "client_class": "ChineseModelsClient",
+    "default_model": "step-1-32k",
+    "provider_name": "阶跃星辰 Step",
+    "supportsCustomModel": true,
+    "models": {
+      "step-1-8k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "step-1-32k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 8000
+      },
+      "step-1-128k": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 16000
+      }
+    }
+  },
+  "xunfei": {
+    "client_class": "ChineseModelsClient",
+    "default_model": "spark-pro",
+    "provider_name": "科大讯飞 Spark",
+    "supportsCustomModel": true,
+    "models": {
+      "spark-lite": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "spark-pro": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      },
+      "spark-max": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "max_tokens": 4000
+      }
+    }
+  }
+}
